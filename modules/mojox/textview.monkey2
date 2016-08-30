@@ -77,7 +77,7 @@ Class TextDocument
 	
 	#rem monkeydoc Gets the index of the first character on a line.
 	#end	
-	Method StartOfLine:Int( line:Int )
+	Method StartOfLine:Int( line:Int)
 		If line<=0 Return 0
 		If line<_lines.Length Return _lines[line-1].eol+1
 		Return _text.Length
@@ -120,6 +120,28 @@ Class TextDocument
 		Return _text.Slice( StartOfLine( line ),EndOfLine( line ) )
 	End
 	
+	#rem monkeydoc Gets the index of the first word on a line with the given cursor.
+	#end	
+	Method FirstWord:Int( cursor:int )
+		Local line := FindLine(cursor)
+		
+		If line<0 Return 0
+		
+		If line>=_lines.Length line = _lines.Length-1
+		
+		Local sol := 0 
+		If line > 0 sol = _lines[line-1].eol+1
+		
+		For cursor = sol to _lines[line].eol
+			If _text[cursor] <> 32 and _text[cursor] <> 9
+				Return cursor
+			Endif
+		Next
+		
+		'if non found (line has nothing but spacing) then just return sol
+		Return sol
+	End
+	
 	#rem monkeydoc Gets the index of the next word from the given cursor.
 	#end	
 	Method NextWord:Int( cursor:int )
@@ -127,7 +149,11 @@ Class TextDocument
 		
 		If line<0 Return 0
 		If line>=_lines.Length Return _text.Length
-		If cursor <= 0 Return _lines[line-1].eol+1
+		
+		Local sol := 0
+		If line > 0 sol = _lines[line-1].eol+1
+		
+		If cursor <= 0 Return sol
 		If cursor >= _lines[line].eol Return _lines[line].eol
 		
 		Local spacing := false
@@ -180,13 +206,16 @@ Class TextDocument
 	#end	
 	Method PreviousWord:Int( cursor:int )
 		Local line := FindLine(cursor)
-		Local sol := _lines[line-1].eol+1
 		
 		'reduce cursor as we should start scan on previous character
 		cursor -= 1
 		
 		If line<0 Return 0
 		If line>=_lines.Length Return _text.Length
+		
+		Local sol := 0
+		If line > 0 sol = _lines[line-1].eol+1
+		
 		If cursor <= sol Return sol
 		If cursor >= _lines[line].eol Return _lines[line].eol
 		
@@ -1079,7 +1108,17 @@ Class TextView Extends ScrollableView
 				
 		Case Key.Home
 			
-			_cursor=_doc.StartOfLine( Row( _cursor ) )
+			'first check to goto start of first word
+			Local newCursor := _doc.FirstWord( _cursor )
+			
+			If newCursor <> _cursor
+				'good
+				_cursor = newCursor
+			Else
+				'if the cursor doesnt change then we should goto start of line instead (basically home pressed twice)
+				_cursor = _doc.StartOfLine( Row(_cursor)  )
+			Endif
+			
 			UpdateCursor()
 				
 		Case Key.KeyEnd
