@@ -1244,7 +1244,10 @@ Class TextView Extends ScrollableView
 		Case EventType.MouseClick
 		
 			_cursor=PointToIndex( event.Location )
-			_anchor=_cursor
+			
+			If Not (event.Modifiers & Modifier.Shift)			
+				_anchor=_cursor
+			EndIf
 			
 			_dragging=True
 			
