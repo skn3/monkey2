@@ -91,7 +91,7 @@ Class TextDocument
 		Return _text.Length
 	End
 	
-	#rem monkeydoc Finds the line containing a character.
+	#rem monkeydoc Finds the line with the given character index.
 	#end
 	Method FindLine:Int( index:Int )
 	
@@ -118,6 +118,105 @@ Class TextDocument
 	#end
 	Method GetLine:String( line:Int )
 		Return _text.Slice( StartOfLine( line ),EndOfLine( line ) )
+	End
+	
+	#rem monkeydoc Gets the index of the next word from the given cursor.
+	#end	
+	Method NextWord:Int( cursor:int )
+		Local line := FindLine(cursor)
+		
+		If line<0 Return 0
+		If line>=_lines.Length Return _text.Length
+		If cursor <= 0 Return _lines[line-1].eol+1
+		If cursor >= _lines[line].eol Return _lines[line].eol
+		
+		Local spacing := false
+		
+		'what type of word are we starting on
+		If _text[cursor] = 32 Or _text[cursor] = 9
+			'spacing, look for next non space
+			spacing = True
+			
+		ElseIf _text[cursor] = 95 Or (_text[cursor] >= 48 And _text[cursor] <= 57) Or (_text[cursor] >= 65 And _text[cursor] <= 90) Or (_text[cursor] >= 97 And _text[cursor] <= 122)
+			'alphanumeric, find first spacing or symbol
+			For cursor = cursor To _lines[line].eol
+				If _text[cursor] = 32 Or _text[cursor] = 9
+					'spacing, look for next non space
+					spacing = true
+					Exit
+					
+				Elseif _text[cursor] = 95 Or (_text[cursor] >= 48 And _text[cursor] <= 57) Or (_text[cursor] >= 65 And _text[cursor] <= 90) Or (_text[cursor] >= 97 And _text[cursor] <= 122)
+					Continue
+				Else
+					'symbol, bingo!
+					Return cursor
+				Endif
+			Next
+		Else
+			'symbol, find next space or alphanumeric
+			For cursor = cursor To _lines[line].eol
+				If _text[cursor] = 32 Or _text[cursor] = 9
+					spacing = True
+					Exit
+				ElseIf _text[cursor] = 95 Or (_text[cursor] >= 48 And _text[cursor] <= 57) Or (_text[cursor] >= 65 And _text[cursor] <= 90) Or (_text[cursor] >= 97 And _text[cursor] <= 122)
+					'alphanumeric, bingo!
+					Return cursor
+				Endif
+			Next
+		Endif
+		
+		'look for next non space
+		If spacing
+			For cursor = cursor+1 To _lines[line].eol
+				If _text[cursor] <> 32 And _text[cursor] <> 9
+					Return cursor
+				Endif
+			Next
+		EndIf
+		
+		'just return eol instead
+		Return _lines[line].eol
+	End
+
+	#rem monkeydoc Gets the index of the previous word from the given cursor.
+	#end	
+	Method PreviousWord:Int( cursor:int )
+		Local line := FindLine(cursor)
+		Local sol := _lines[line-1].eol+1
+		
+		'reduce cursor as we should start scan on previous character
+		cursor -= 1
+		
+		If line<0 Return 0
+		If line>=_lines.Length Return _text.Length
+		If cursor <= sol Return sol
+		If cursor >= _lines[line].eol Return _lines[line].eol
+		
+		Local spacing := False
+		
+		'what type of word are we starting on
+		If _text[cursor] = 95 Or (_text[cursor] >= 48 And _text[cursor] <= 57) Or (_text[cursor] >= 65 And _text[cursor] <= 90) Or (_text[cursor] >= 97 And _text[cursor] <= 122)
+			'alphanumeric, find first alphanumeric in word
+			For cursor = cursor To sol Step -1
+				if _text[cursor] = 95 Or (_text[cursor] >= 48 And _text[cursor] <= 57) Or (_text[cursor] >= 65 And _text[cursor] <= 90) Or (_text[cursor] >= 97 And _text[cursor] <= 122)
+					Continue
+				Else
+					'non alpha, bingo!
+					Return cursor+1
+				Endif
+			Next
+		Else
+			'symbol, find first alphanumeric in word
+			For cursor = cursor To sol Step -1
+				If _text[cursor] = 95 Or (_text[cursor] >= 48 And _text[cursor] <= 57) Or (_text[cursor] >= 65 And _text[cursor] <= 90) Or (_text[cursor] >= 97 And _text[cursor] <= 122)
+					'alphanumeric, bingo!
+					Return cursor+1
+				Endif
+			Next
+		Endif
+		
+		'just return sol instead
+		Return sol
 	End
 
 	#rem monkeydoc Appends text to the end of the document.
@@ -1039,6 +1138,18 @@ Class TextView Extends ScrollableView
 			Return True
 		Case Key.KeyEnd
 			_cursor=_doc.TextLength
+			UpdateCursor()
+			Return True
+			
+		Case Key.Right
+			'move to next word
+			_cursor=_doc.NextWord( _cursor )
+			UpdateCursor()
+			Return True
+			
+		Case Key.Left
+			'move to previous word
+			_cursor=_doc.PreviousWord( _cursor )
 			UpdateCursor()
 			Return True
 		End
