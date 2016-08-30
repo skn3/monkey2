@@ -137,7 +137,7 @@ Class TextDocument
 			'spacing, look for next non space
 			spacing = True
 			
-		ElseIf _text[cursor] = 95 Or (_text[cursor] >= 48 And _text[cursor] <= 57) Or (_text[cursor] >= 65 And _text[cursor] <= 90) Or (_text[cursor] >= 97 And _text[cursor] <= 122)
+		ElseIf Alphanumeric(cursor)
 			'alphanumeric, find first spacing or symbol
 			For cursor = cursor To _lines[line].eol
 				If _text[cursor] = 32 Or _text[cursor] = 9
@@ -145,9 +145,7 @@ Class TextDocument
 					spacing = true
 					Exit
 					
-				Elseif _text[cursor] = 95 Or (_text[cursor] >= 48 And _text[cursor] <= 57) Or (_text[cursor] >= 65 And _text[cursor] <= 90) Or (_text[cursor] >= 97 And _text[cursor] <= 122)
-					Continue
-				Else
+				Elseif Not Alphanumeric(cursor)
 					'symbol, bingo!
 					Return cursor
 				Endif
@@ -158,7 +156,7 @@ Class TextDocument
 				If _text[cursor] = 32 Or _text[cursor] = 9
 					spacing = True
 					Exit
-				ElseIf _text[cursor] = 95 Or (_text[cursor] >= 48 And _text[cursor] <= 57) Or (_text[cursor] >= 65 And _text[cursor] <= 90) Or (_text[cursor] >= 97 And _text[cursor] <= 122)
+				ElseIf Alphanumeric(cursor)
 					'alphanumeric, bingo!
 					Return cursor
 				Endif
@@ -192,15 +190,11 @@ Class TextDocument
 		If cursor <= sol Return sol
 		If cursor >= _lines[line].eol Return _lines[line].eol
 		
-		Local spacing := False
-		
 		'what type of word are we starting on
-		If _text[cursor] = 95 Or (_text[cursor] >= 48 And _text[cursor] <= 57) Or (_text[cursor] >= 65 And _text[cursor] <= 90) Or (_text[cursor] >= 97 And _text[cursor] <= 122)
+		If Alphanumeric(cursor)
 			'alphanumeric, find first alphanumeric in word
 			For cursor = cursor To sol Step -1
-				if _text[cursor] = 95 Or (_text[cursor] >= 48 And _text[cursor] <= 57) Or (_text[cursor] >= 65 And _text[cursor] <= 90) Or (_text[cursor] >= 97 And _text[cursor] <= 122)
-					Continue
-				Else
+				if Not Alphanumeric(cursor)
 					'non alpha, bingo!
 					Return cursor+1
 				Endif
@@ -208,7 +202,7 @@ Class TextDocument
 		Else
 			'symbol, find first alphanumeric in word
 			For cursor = cursor To sol Step -1
-				If _text[cursor] = 95 Or (_text[cursor] >= 48 And _text[cursor] <= 57) Or (_text[cursor] >= 65 And _text[cursor] <= 90) Or (_text[cursor] >= 97 And _text[cursor] <= 122)
+				If Alphanumeric(cursor)
 					'alphanumeric, bingo!
 					Return cursor+1
 				Endif
@@ -332,7 +326,9 @@ Class TextDocument
 	Field _colors:=New Stack<Byte>
 	Field _highlighter:TextHighlighter
 	
-	
+	Method Alphanumeric:Bool(cursor:Int)
+		return _text[cursor] = 95 Or (_text[cursor] >= 48 And _text[cursor] <= 57) Or (_text[cursor] >= 65 And _text[cursor] <= 90) Or (_text[cursor] >= 97 And _text[cursor] <= 122) Or (_text[cursor] >= 192 And _text[cursor] <= 214) Or (_text[cursor] >= 216 And _text[cursor] <= 246) Or (_text[cursor] >= 248 And _text[cursor] <= 255)
+	End
 End
 
 #rem monkeydoc The TextView class.
